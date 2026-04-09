@@ -6,7 +6,8 @@ from utils.session_maker import make_db_session
 from utils.security import verify_password
 from utils.jwt_handler import create_access_token, create_refresh_token, credential_exception, HTTPException, verify_token
 
-from models.credentials_models import Admin_Credentials, User_Credentials
+from models.credentials_models import Admin_Credentials
+from models.user_models import User
 from models.refresh_token import Admin_Refresh_Token, User_Refresh_Token
 
 from schemas.auth_s import pyd_login
@@ -60,7 +61,7 @@ def login(response: Response, request: pyd_login,  db: Session = Depends(make_db
             raise HTTPException(status_code=401, detail="Incorrect password")
     else:
         # Get the user object with the corresponding email
-        user_creds = User_Credentials
+        user_creds = User
         instance = db.query(user_creds).filter(user_creds.email==request.email).first()
         # Check if user exists
         if instance is None:
@@ -152,9 +153,13 @@ def refresh(response: Response, request: Request, db: Session = Depends(make_db_
 
     sub = payload.get('sub')
     role = payload.get('role')
-    adm_ref_tk = Admin_Refresh_Token
+    
+    if role == 'admin':
+        model_cls = Admin_Refresh_Token
+    else:
+        model_cls = User_Refresh_Token
 
-    token = db.query(adm_ref_tk).filter(adm_ref_tk.token==refresh_token).first()
+    token = db.query(model_cls).filter(model_cls.token==refresh_token).first()
 
     if token is None:
         raise HTTPException(status_code=401, detail="Refresh Token not found in DB")
