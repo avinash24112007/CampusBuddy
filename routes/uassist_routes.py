@@ -27,7 +27,13 @@ Be concise, friendly, and helpful. Format your responses nicely in Markdown.
 @router.post("/chat", response_model=ChatResponse)
 async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_session)):
     # 1. Initialize large language model (requires GROQ_API_KEY in env)
+    if os.environ.get('GROK_API_KEY') is not None:
+        api = os.environ.get('GROK_API_KEY')
+    else: 
+        print("No API Key Provided")
+    
     llm = ChatGroq(
+        api_key=api,
         model="llama3-8b-8192", 
         temperature=0.0
     )
