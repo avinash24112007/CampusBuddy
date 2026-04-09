@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from typing import AsyncGenerator
 from contextlib import asynccontextmanager
 from database import Base, engine
-from models import caffenity_models, credentials_models, arena_models
+from models import caffenity_models, credentials_models, arena_models, problembox_models
 from routes import uassist_routes
 
 
