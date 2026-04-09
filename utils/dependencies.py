@@ -1,22 +1,49 @@
-from utils.jwt_handler import verify_token, credential_exception
-from database import SessionLocal
-from fastapi import Depends, Request
+from utils.jwt_handler import verify_token, create_access_token, credential_exception
+from fastapi import Depends, Request, Response
 from utils.session_maker import make_db_session
 from sqlalchemy.orm import Session
-from models.credentials_models import Admin_Credentials, User_Credentials
+from datetime import datetime, timezone, timedelta
+
+from models.credentials_models import Admin_Credentials
+from models.user_models import User
+from models.refresh_token import Admin_Refresh_Token, User_Refresh_Token
 
 admin_table = Admin_Credentials
-user_table = User_Credentials 
+user_table = User
+
+def auto_refresh_token(request: Request, response: Response, db: Session, payload: dict, role: str):
+    exp_timestamp = payload.get('exp')
+    if not exp_timestamp:
+        return
+
+    exp_time = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+    # If the token expires in less than 5 minutes
+    if exp_time - datetime.now(timezone.utc) < timedelta(minutes=5):
+        refresh_cookie = request.cookies.get("refresh_token")
+        if not refresh_cookie:
+            return
+            
+        model_cls = Admin_Refresh_Token if role == 'admin' else User_Refresh_Token
+        ref_db = db.query(model_cls).filter(model_cls.token == refresh_cookie).first()
+        
+        # Only refresh if the refresh token is valid in the database
+        if ref_db and ref_db.expires_at.replace(tzinfo=timezone.utc) > datetime.now(timezone.utc):
+            new_data = {
+                'sub': payload.get('sub'),
+                'email': payload.get('email', ''),
+                'role': role
+            }
+            new_access = create_access_token(new_data)
+            response.set_cookie(key='access_token', value=new_access, httponly=True, secure=False, samesite='lax')
 
 
-def get_current_admin(request: Request, db: Session = Depends(make_db_session)):
+def get_current_admin(request: Request, response: Response, db: Session = Depends(make_db_session)):
     token = request.cookies.get("access_token")
 
     if token is None:
         raise credential_exception
 
     payload = verify_token(token=token)
-
     admin_id = payload.get('sub')
 
     if admin_id is None:
@@ -26,32 +53,27 @@ def get_current_admin(request: Request, db: Session = Depends(make_db_session)):
 
     if admin is None:
         raise credential_exception
+        
+    auto_refresh_token(request, response, db, payload, role='admin')
     return admin
     
-def get_current_user(request: Request, db: Session = Depends(make_db_session)):
+def get_current_user(request: Request, response: Response, db: Session = Depends(make_db_session)):
     token = request.cookies.get("access_token")
-    print(f"TOKEN: {token}")
 
     if token is None:
-        print("NO TOKEN FOUND")
         raise credential_exception
 
     payload = verify_token(token=token)
-    print(f"PAYLOAD: {payload}")
-
     user_id = payload.get('sub')
-    print(f"USER_ID: {user_id}")
 
     if user_id is None:
-        print("NO SUB IN PAYLOAD")
         raise credential_exception
 
-    user = db.query(user_table)\
-                .filter(user_table.id == int(user_id)).first()
-    print(f"USER FOUND: {user}")
+    # User.id is a UUID, allowing direct mapping lookup without integer crashing!
+    user = db.query(user_table).filter(user_table.id == user_id).first()
 
     if user is None:
-        print("USER NOT FOUND IN DB")
         raise credential_exception
-
+        
+    auto_refresh_token(request, response, db, payload, role='user')
     return user
