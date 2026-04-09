@@ -21,7 +21,10 @@ class MenuItem(Base):
     __tablename__ = 'menu_items'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    canteen_id: Mapped[Optional[int]] = mapped_column(ForeignKey('canteens.id'))
+    canteen = relationship("Canteen", backref="menu_items")
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text)
     category: Mapped[str] = mapped_column(String(50), nullable=False)
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     prep_time: Mapped[Optional[str]] = mapped_column(String(20))
