@@ -4,8 +4,8 @@ from pydantic import BaseModel
 from utils.session_maker import make_db_session
 from tools.caffenity import make_caffenity_tool
 from langchain_groq import ChatGroq
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.prompts import ChatPromptTemplate
+from langgraph.prebuilt import create_react_agent
+from langchain_core.messages import HumanMessage
 import os
 
 router = APIRouter(prefix="/uassist", tags=["UAssist"])
@@ -41,21 +41,13 @@ async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_
     # 2. Create tools using the dynamically injected session
     tools = [make_caffenity_tool(db)]
 
-    # 3. Setup Prompt with required placeholders for Tool Calling Agent
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}"),
-    ])
+    # 3. Create the agent using langgraph
+    agent_executor = create_react_agent(llm, tools=tools, state_modifier=SYSTEM_PROMPT)
 
-    # 4. Bind tools and create executor
-    agent = create_tool_calling_agent(llm, tools, prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
-    # 5. Invoke the executor
+    # 4. Invoke the executor
     try:
-        response = agent_executor.invoke({"input": request.message})
-        reply = response.get("output", "I had trouble processing that request.")
+        response = agent_executor.invoke({"messages": [HumanMessage(content=request.message)]})
+        reply = response["messages"][-1].content
     except Exception as e:
         reply = f"Error processing request: {str(e)}"
 
