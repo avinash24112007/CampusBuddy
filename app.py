@@ -24,3 +24,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None,None]:
 app = FastAPI(title="Campus Buddy", lifespan=lifespan)
 
 app.include_router(uassist_routes.router)
+
+
+@app.get('/')
+def greet():
+    return {"message": "Welcome to Campus Buddy"}
