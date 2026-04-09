@@ -3,6 +3,7 @@ from typing import AsyncGenerator
 from contextlib import asynccontextmanager
 from database import Base, engine
 from models import caffenity_models, credentials_models, arena_models
+from routes import uassist_routes
 
 
 
@@ -22,3 +23,4 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None,None]:
 
 app = FastAPI(title="Campus Buddy", lifespan=lifespan)
 
+app.include_router(uassist_routes.router)

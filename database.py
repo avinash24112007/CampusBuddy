@@ -7,4 +7,4 @@ engine = create_engine(url = str(db_Settings.URL))
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
 class Base(DeclarativeBase):
-    pass
+    pass
