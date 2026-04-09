@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from database import get_db
+from utils.session_maker import make_db_session
 from tools.caffenity import make_caffenity_tool
 from langchain_groq import ChatGroq
 from langchain.agents import AgentExecutor, create_tool_calling_agent
@@ -25,7 +25,7 @@ Be concise, friendly, and helpful. Format your responses nicely in Markdown.
 """
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat_with_uassist(request: ChatRequest, db: Session = Depends(get_db)):
+async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_session)):
     # 1. Initialize large language model (requires GROQ_API_KEY in env)
     llm = ChatGroq(
         model="llama3-8b-8192", 

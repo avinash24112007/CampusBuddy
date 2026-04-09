@@ -60,12 +60,13 @@ def search_food_items(
     lines = [f"Found {len(results)} item(s):\n"]
     for item in results:
         canteen_name = item.canteen.name if item.canteen else "Unknown Canteen"
+        status_str = '\u2705 Available' if item.in_stock else '\u274c Sold Out'
         lines.append(
             f"🍽️ {item.name} ({canteen_name})\n"
             f"   Category : {item.category}\n"
             f"   Price    : \u20b9{item.price}\n"
             f"   About    : {item.description or 'No description'}\n"
-            f"   Status   : {'\u2705 Available' if item.in_stock else '\u274c Sold Out'}\n"
+            f"   Status   : {status_str}\n"
         )
 
     return "\n".join(lines)
