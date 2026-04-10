@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
+
 class ArenaEvent(Base):
     __tablename__ = 'arena_events'
 
