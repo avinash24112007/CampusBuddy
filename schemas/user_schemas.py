@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional
+from typing import Optional, List
 
 class UserContextOut(BaseModel):
     id: str
@@ -13,3 +13,7 @@ class UserContextOut(BaseModel):
     phone: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+class UserSearchResponse(BaseModel):
+    success: bool = True
+    data: List[UserContextOut]

@@ -52,3 +52,52 @@ class ArenaEventOut(BaseModel):
 class ArenaEventResponse(BaseModel):
     success: bool = True
     data: List[ArenaEventOut]
+
+
+# --- RSVP & REGISTRATION ---
+class ArenaRegistrationIn(BaseModel):
+    eventId: str = Field(alias="eventId")
+    teamName: Optional[str] = Field(alias="teamName", default=None)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+class ArenaRegistrationOut(BaseModel):
+    id: int
+    eventId: str = Field(alias="eventId", validation_alias="event_id")
+    userId: str = Field(alias="userId", validation_alias="user_id")
+    teamName: Optional[str] = Field(alias="teamName", validation_alias="team_name", default=None)
+    status: str
+    registeredAt: datetime = Field(alias="registeredAt", validation_alias="registered_at")
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+class ArenaRegistrationResponse(BaseModel):
+    success: bool = True
+    data: List[ArenaRegistrationOut]
+
+
+# --- TEAM SYNC ---
+class ArenaTeamSyncIn(BaseModel):
+    eventId: str = Field(alias="eventId")
+    recipientId: str = Field(alias="recipientId")
+    tier: str
+
+    model_config = ConfigDict(populate_by_name=True)
+
+class ArenaTeamSyncOut(BaseModel):
+    id: int
+    eventId: str = Field(alias="eventId", validation_alias="event_id")
+    requesterId: str = Field(alias="requesterId", validation_alias="requester_id")
+    recipientId: str = Field(alias="recipientId", validation_alias="recipient_id")
+    tier: str
+    status: str
+    createdAt: datetime = Field(alias="createdAt", validation_alias="created_at")
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+class ArenaTeamSyncUpdate(BaseModel):
+    status: str # 'Accepted', 'Declined'
+
+class ArenaTeamSyncResponse(BaseModel):
+    success: bool = True
+    data: List[ArenaTeamSyncOut]
