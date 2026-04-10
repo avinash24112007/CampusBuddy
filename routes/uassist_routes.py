@@ -65,8 +65,18 @@ async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_
     # 3. Dynamic context (User ID)
     dynamic_prompt = SYSTEM_PROMPT + f"\n\nCONTEXT: Logged-in Student ID: {request.user_id or 'unknown'}"
 
-    # 4. Create the agent
-    agent_executor = create_react_agent(llm, tools=tools, state_modifier=dynamic_prompt)
+    # 4. Create the agent with resilient parameter passing
+    import inspect
+    sig = inspect.signature(create_react_agent)
+    agent_kwargs = {}
+    if 'state_modifier' in sig.parameters:
+        agent_kwargs['state_modifier'] = dynamic_prompt
+    elif 'messages_modifier' in sig.parameters:
+        agent_kwargs['messages_modifier'] = dynamic_prompt
+    elif 'system_message' in sig.parameters:
+        agent_kwargs['system_message'] = dynamic_prompt
+
+    agent_executor = create_react_agent(llm, tools=tools, **agent_kwargs)
 
     try:
         response = agent_executor.invoke({"messages": [HumanMessage(content=request.message)]})
