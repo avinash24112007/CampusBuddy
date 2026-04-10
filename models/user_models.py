@@ -11,10 +11,10 @@ from database import Base
 class User(Base):
     __tablename__ = 'users'
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), 
+    id: Mapped[str] = mapped_column(
+        String(50), 
         primary_key=True, 
-        server_default=text("gen_random_uuid()")
+        
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
