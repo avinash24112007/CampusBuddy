@@ -22,7 +22,7 @@ class Canteen(Base):
 class MenuItem(Base):
     __tablename__ = 'menu_items'
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
     canteen_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('canteens.id'))
     canteen = relationship("Canteen", backref="menu_items")
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -33,6 +33,7 @@ class MenuItem(Base):
     image_url: Mapped[Optional[str]] = mapped_column(Text)
     rating: Mapped[Optional[float]] = mapped_column(Numeric(2, 1), default=0)
     calories: Mapped[Optional[int]] = mapped_column(Integer)
+    total_orders: Mapped[Optional[int]] = mapped_column(Integer, default=0)
     is_veg: Mapped[Optional[bool]] = mapped_column(Boolean, default=True)
     is_special: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
     in_stock: Mapped[Optional[bool]] = mapped_column(Boolean, default=True)
@@ -66,7 +67,7 @@ class OrderItem(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     order_id: Mapped[Optional[int]] = mapped_column(ForeignKey('orders.id', ondelete='CASCADE'))
-    menu_item_id: Mapped[Optional[int]] = mapped_column(ForeignKey('menu_items.id'))
+    menu_item_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('menu_items.id'))
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     price_at_time_of_order: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     customizations: Mapped[Optional[str]] = mapped_column(Text)

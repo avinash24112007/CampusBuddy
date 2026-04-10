@@ -22,37 +22,45 @@ class CanteenOut(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 class MenuItemIn(BaseModel):
+    id: str
     canteen_id: str
     name: str
     description: Optional[str] = None
     category: str
     price: float
-    prep_time: Optional[str] = None
-    image_url: Optional[str] = None
+    prepTime: Optional[str] = Field(alias="prepTime", validation_alias="prep_time", default=None)
+    image: Optional[str] = Field(alias="image", validation_alias="image_url", default=None)
+    totalOrders: Optional[int] = Field(alias="totalOrders", validation_alias="total_orders", default=0)
     calories: Optional[int] = None
-    is_veg: bool = True
+    isVeg: bool = Field(alias="isVeg", validation_alias="is_veg", default=True)
     is_special: bool = False
-    in_stock: bool = True
+    inStock: bool = Field(alias="inStock", validation_alias="in_stock", default=True)
+    availableFrom: Optional[str] = Field(alias="availableFrom", validation_alias="available_from", default=None)
+    availableTo: Optional[str] = Field(alias="availableTo", validation_alias="available_to", default=None)
     tags: List[str] = Field(default_factory=list)
 
+    model_config = ConfigDict(populate_by_name=True)
+
 class MenuItemOut(BaseModel):
-    id: int
+    id: str
     canteen_id: Optional[str] = None
     name: str
     description: Optional[str] = None
     category: str
     price: float
-    prep_time: Optional[str] = None
-    image_url: Optional[str] = None
+    prepTime: Optional[str] = Field(alias="prepTime", validation_alias="prep_time", default=None)
+    image: Optional[str] = Field(alias="image", validation_alias="image_url", default=None)
     rating: Optional[float] = 0.0
+    totalOrders: Optional[int] = Field(alias="totalOrders", validation_alias="total_orders", default=0)
     calories: Optional[int] = None
-    is_veg: bool = True
+    isVeg: bool = Field(alias="isVeg", validation_alias="is_veg", default=True)
     is_special: bool = False
-    in_stock: bool = True
+    inStock: bool = Field(alias="inStock", validation_alias="in_stock", default=True)
+    availableFrom: Optional[str] = Field(alias="availableFrom", validation_alias="available_from", default=None)
+    availableTo: Optional[str] = Field(alias="availableTo", validation_alias="available_to", default=None)
     tags: List[str] = Field(default_factory=list)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 class MenuResponse(BaseModel):
     success: bool = True
