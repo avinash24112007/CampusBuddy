@@ -3,19 +3,43 @@ from fastapi import APIRouter, Depends, Response, Request
 from sqlalchemy.orm import Session
 
 from utils.session_maker import make_db_session
-from utils.security import verify_password
+from utils.security import verify_password, hash_password
 from utils.jwt_handler import create_access_token, create_refresh_token, credential_exception, HTTPException, verify_token
 
 from models.credentials_models import Admin_Credentials
 from models.user_models import User
 from models.refresh_token import Admin_Refresh_Token, User_Refresh_Token
 
-from schemas.auth_s import pyd_login
+from schemas.auth_s import pyd_login, pyd_register
 
 from datetime import datetime, timezone, timedelta
 
 REFRESH_EXPIRE_DAYS = 7
 router = APIRouter()
+
+
+@router.post('/register')
+def register(request: pyd_register, db: Session = Depends(make_db_session)):
+    # Check if email already exists
+    existing = db.query(User).filter(User.email == request.email).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Email already registered")
+
+    hashed_pw = hash_password(request.password)
+    new_user = User(
+        name=request.name,
+        email=request.email,
+        password=hashed_pw,
+        phone=request.phone,
+        course=request.course,
+        department=request.department,
+        semester=request.semester,
+        college_id=request.college_id
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {"status": "success", "message": "Registration successful!", "user_id": str(new_user.id)}
 
 
 @router.post('/login')
