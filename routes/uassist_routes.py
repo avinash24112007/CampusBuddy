@@ -10,6 +10,8 @@ import os
 
 from tools.arena import make_arena_tools
 from tools.shopperz import make_shopperz_tools
+from tools.problembox import make_problembox_tools
+from tools.map import make_map_tools
 
 router = APIRouter(prefix="/uassist", tags=["UAssist"])
 
@@ -24,20 +26,22 @@ class ChatResponse(BaseModel):
     data: list = []
 
 SYSTEM_PROMPT = """You are UAssist, the student super-app AI at KU.
-You help students with Food (Caffenity), Events (Arena), and Shopping (Shopperz).
+You help students with Food (Caffenity), Events (Arena), Shopping (Shopperz), Reporting (ProblemBox), and Navigation (Map).
 
 STRICT OUTPUT FORMAT:
-If you are recommending items (food, events, or products), you MUST format your final response as a JSON object:
+If you are recommending items, reporting status, or giving directions, you MUST format your final response as a JSON object:
 {
   "message": "Your friendly text reply here...",
-  "type": "food_cards" | "event_cards" | "stationery_cards" | "text",
-  "data": [ ... list of relevant database objects found by tools ...]
+  "type": "food_cards" | "event_cards" | "product_cards" | "REPORT" | "NAVIGATE" | "text",
+  "data": [ ... list of relevant database objects or metadata found by tools ...]
 }
 
 - Use 'food_cards' for canteen items.
 - Use 'event_cards' for arena events.
-- Use 'stationery_cards' for store products or market listings.
-- If no items are being shown, use type 'text' and an empty data list.
+- Use 'product_cards' for store products or market listings.
+- Use 'REPORT' when a student raises a ticket (include ticket object in data).
+- Use 'NAVIGATE' for building/room locations (include location object in data).
+- If no items/actions are being shown, use type 'text' and an empty data list.
 
 Be concise and friendly.
 """
@@ -55,6 +59,8 @@ async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_
     tools.append(make_caffenity_tool(db))
     tools.extend(make_arena_tools(db))
     tools.extend(make_shopperz_tools(db))
+    tools.extend(make_problembox_tools(db, request.user_id or "unknown"))
+    tools.extend(make_map_tools(db))
 
     # 3. Dynamic context (User ID)
     dynamic_prompt = SYSTEM_PROMPT + f"\n\nCONTEXT: Logged-in Student ID: {request.user_id or 'unknown'}"
