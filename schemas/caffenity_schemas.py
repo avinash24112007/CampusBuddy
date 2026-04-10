@@ -33,9 +33,9 @@ class MenuItemIn(BaseModel):
     image: Optional[str] = Field(alias="image", validation_alias="image_url", default=None)
     totalOrders: Optional[int] = Field(alias="totalOrders", validation_alias="total_orders", default=0)
     calories: Optional[int] = None
-    isVeg: bool = Field(alias="isVeg", validation_alias="is_veg", default=True)
-    is_special: bool = False
-    inStock: bool = Field(alias="inStock", validation_alias="in_stock", default=True)
+    isVeg: Optional[bool] = Field(alias="isVeg", validation_alias="is_veg", default=True)
+    is_special: Optional[bool] = False
+    inStock: Optional[bool] = Field(alias="inStock", validation_alias="in_stock", default=True)
     availableFrom: Optional[time] = Field(alias="availableFrom", validation_alias="available_from", default=None)
     availableTo: Optional[time] = Field(alias="availableTo", validation_alias="available_to", default=None)
     tags: List[str] = Field(default_factory=list)
@@ -54,9 +54,9 @@ class MenuItemOut(BaseModel):
     rating: Optional[float] = 0.0
     totalOrders: Optional[int] = Field(alias="totalOrders", validation_alias="total_orders", default=0)
     calories: Optional[int] = None
-    isVeg: bool = Field(alias="isVeg", validation_alias="is_veg", default=True)
-    is_special: bool = False
-    inStock: bool = Field(alias="inStock", validation_alias="in_stock", default=True)
+    isVeg: Optional[bool] = Field(alias="isVeg", validation_alias="is_veg", default=True)
+    is_special: Optional[bool] = False
+    inStock: Optional[bool] = Field(alias="inStock", validation_alias="in_stock", default=True)
     availableFrom: Optional[time] = Field(alias="availableFrom", validation_alias="available_from", default=None)
     availableTo: Optional[time] = Field(alias="availableTo", validation_alias="available_to", default=None)
     tags: List[str] = Field(default_factory=list)
