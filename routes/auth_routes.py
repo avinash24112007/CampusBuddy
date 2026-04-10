@@ -72,13 +72,15 @@ def login(response: Response, request: pyd_login,  db: Session = Depends(make_db
             db.add(new_refresh_token)
             db.commit()
 
-            # Initializing cookie access token and refresh token object 
+            # Set cookies (works same-origin) + return tokens in body (works cross-domain)
             response.set_cookie(key='access_token', value=access_token, httponly=True, secure=True, samesite='none')
             response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=True, samesite='none')
             return {
                     "status": "success",
                     "message": "Login successful!",
-                    "role": "admin"
+                    "role": "admin",
+                    "access_token": access_token,
+                    "refresh_token": refresh_token
                     }
                         
         else:
@@ -118,13 +120,15 @@ def login(response: Response, request: pyd_login,  db: Session = Depends(make_db
                 db.add(new_refresh_token)
                 db.commit()
 
-                # Initializing cookie access token and refresh token object
+                # Set cookies (works same-origin) + return tokens in body (works cross-domain)
                 response.set_cookie(key='access_token', value=access_token, httponly=True, secure=True, samesite='none')
                 response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=True, samesite='none')
                 
                 return  {"status": "success", 
                          "message": "Login successful!", 
-                         "role": "user"}
+                         "role": "user",
+                         "access_token": access_token,
+                         "refresh_token": refresh_token}
             else:
                 raise HTTPException(status_code=401, detail="Incorrect password") 
         else:

@@ -11,6 +11,14 @@ from models.refresh_token import Admin_Refresh_Token, User_Refresh_Token
 admin_table = Admin_Credentials
 user_table = User
 
+def _extract_token(request: Request) -> str | None:
+    """Extract access token from Authorization header first, then fall back to cookies.
+    This dual strategy handles both cross-domain (HF Spaces) and same-origin deployments."""
+    auth_header = request.headers.get("authorization")
+    if auth_header and auth_header.lower().startswith("bearer "):
+        return auth_header[7:]
+    return request.cookies.get("access_token")
+
 def auto_refresh_token(request: Request, response: Response, db: Session, payload: dict, role: str):
     exp_timestamp = payload.get('exp')
     if not exp_timestamp:
@@ -38,7 +46,7 @@ def auto_refresh_token(request: Request, response: Response, db: Session, payloa
 
 
 def get_current_admin(request: Request, response: Response, db: Session = Depends(make_db_session)):
-    token = request.cookies.get("access_token")
+    token = _extract_token(request)
 
     if token is None:
         raise credential_exception
@@ -66,7 +74,7 @@ def get_current_admin(request: Request, response: Response, db: Session = Depend
     return admin
     
 def get_current_user(request: Request, response: Response, db: Session = Depends(make_db_session)):
-    token = request.cookies.get("access_token")
+    token = _extract_token(request)
 
     if token is None:
         raise credential_exception
