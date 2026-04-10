@@ -19,6 +19,8 @@ class RetailInventory(Base):
     reviews: Mapped[int] = mapped_column(Integer, default=0)
     # Revenue tracker requested by user
     total_sales: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0)
+    bulk_min: Mapped[int] = mapped_column(Integer, nullable=True)
+    bulk_price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=True)
 
 class MarketListing(Base):
     __tablename__ = 'market_listings'
@@ -42,3 +44,26 @@ class PrintQueue(Base):
     file_metadata: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default='{}')
     cost_total: Mapped[float] = mapped_column(Numeric(8, 2), default=0.0)
     status: Mapped[str] = mapped_column(String(20), default='Queued')  # 'Queued', 'In_Process', 'Ready'
+
+class RetailOrder(Base):
+    __tablename__ = 'retail_orders'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    total_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    payment_status: Mapped[str] = mapped_column(String(50), default='Paid')
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    items = relationship("RetailOrderItem", back_populates="order")
+
+class RetailOrderItem(Base):
+    __tablename__ = 'retail_order_items'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey('retail_orders.id', ondelete='CASCADE'), nullable=False)
+    product_id: Mapped[int] = mapped_column(ForeignKey('retail_inventory.id', ondelete='CASCADE'), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    price_at_time: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+
+    order = relationship("RetailOrder", back_populates="items")
+    product = relationship("RetailInventory")
