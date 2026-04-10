@@ -60,6 +60,7 @@ class Order(Base):
     payment_status: Mapped[Optional[str]] = mapped_column(String(50), default='Paid')
     special_note: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    items: Mapped[list["OrderItem"]] = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
 
 class OrderItem(Base):
@@ -71,3 +72,9 @@ class OrderItem(Base):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     price_at_time_of_order: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     customizations: Mapped[Optional[str]] = mapped_column(Text)
+    order: Mapped["Order"] = relationship("Order", back_populates="items")
+    menu_item: Mapped["MenuItem"] = relationship("MenuItem")
+
+    @property
+    def name(self) -> str:
+        return self.menu_item.name if self.menu_item else "Unknown Item"

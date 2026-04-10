@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from utils.session_maker import make_db_session
-from models.caffenity_models import Canteen, MenuItem
-from schemas.caffenity_schemas import MenuResponse, CanteenResponse, MenuItemOut, CanteenOut, CanteenIn, MenuItemIn
+from models.caffenity_models import Canteen, MenuItem, Order
+from schemas.caffenity_schemas import MenuResponse, CanteenResponse, MenuItemOut, CanteenOut, CanteenIn, MenuItemIn, OrderResponse
 from utils.dependencies import get_current_user, get_current_admin
 
 router = APIRouter(prefix="/api/caffenity", tags=["Caffenity"])
@@ -47,3 +47,16 @@ def create_menu_item(payload: MenuItemIn, db: Session = Depends(make_db_session)
     db.commit()
     db.refresh(new_item)
     return new_item
+
+@router.get("/orders", response_model=OrderResponse, dependencies=[Depends(get_current_user)])
+def get_orders(
+    canteen_id: Optional[str] = Query(None),
+    db: Session = Depends(make_db_session)
+):
+    query = db.query(Order)
+    if canteen_id:
+        query = query.filter(Order.canteen_id == canteen_id)
+        
+    orders = query.all()
+    return OrderResponse(success=True, data=orders)
+
