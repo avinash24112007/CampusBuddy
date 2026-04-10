@@ -45,11 +45,19 @@ def get_current_admin(request: Request, response: Response, db: Session = Depend
 
     payload = verify_token(token=token)
     admin_id = payload.get('sub')
+    role = payload.get('role')
 
     if admin_id is None:
         raise credential_exception
     
-    admin = db.query(admin_table).filter(admin_table.id == int(admin_id)).first()
+    # Reject non-admin tokens immediately so we never try to cast a UUID to int
+    if role != 'admin':
+        raise credential_exception
+
+    try:
+        admin = db.query(admin_table).filter(admin_table.id == int(admin_id)).first()
+    except (ValueError, TypeError):
+        raise credential_exception
 
     if admin is None:
         raise credential_exception
@@ -67,6 +75,12 @@ def get_current_user(request: Request, response: Response, db: Session = Depends
     user_id = payload.get('sub')
 
     if user_id is None:
+        raise credential_exception
+
+    role = payload.get('role')
+    
+    # Reject admin tokens from accessing student-only resources
+    if role != 'user':
         raise credential_exception
 
     # User.id is a UUID, allowing direct mapping lookup without integer crashing!
