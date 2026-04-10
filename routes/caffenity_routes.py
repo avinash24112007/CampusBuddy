@@ -16,7 +16,7 @@ def get_canteens(db: Session = Depends(make_db_session)):
 
 @router.get("/menu", response_model=MenuResponse, dependencies=[Depends(get_current_user)])
 def get_menu(
-    canteen_id: Optional[int] = Query(None, description="Filter menu by specific canteen ID"),
+    canteen_id: Optional[str] = Query(None, description="Filter menu by specific canteen ID"),
     db: Session = Depends(make_db_session)
 ):
     query = db.query(MenuItem)

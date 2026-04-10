@@ -14,6 +14,7 @@ class Canteen(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     location: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
+    image_url: Mapped[Optional[str]] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
@@ -22,7 +23,7 @@ class MenuItem(Base):
     __tablename__ = 'menu_items'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    canteen_id: Mapped[Optional[int]] = mapped_column(ForeignKey('canteens.id'))
+    canteen_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('canteens.id'))
     canteen = relationship("Canteen", backref="menu_items")
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
@@ -49,7 +50,7 @@ class Order(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     order_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, default=generate_order_number)
-    canteen_id: Mapped[Optional[int]] = mapped_column(ForeignKey('canteens.id'))
+    canteen_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('canteens.id'))
     student_name: Mapped[str] = mapped_column(String(255), nullable=False)
     total_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     status: Mapped[Optional[str]] = mapped_column(String(50), default='Placed')

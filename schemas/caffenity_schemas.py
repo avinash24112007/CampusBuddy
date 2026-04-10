@@ -1,24 +1,28 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 
 class CanteenIn(BaseModel):
+    id: str
     name: str
     location: str
     description: Optional[str] = None
+    image: Optional[str] = Field(alias="image", validation_alias="image_url", default=None)
     is_active: bool = True
 
+    model_config = ConfigDict(populate_by_name=True)
+
 class CanteenOut(BaseModel):
-    id: int
+    id: str
     name: str
     location: str
     description: Optional[str] = None
+    image: Optional[str] = Field(validation_alias="image_url", default=None)
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 class MenuItemIn(BaseModel):
-    canteen_id: int
+    canteen_id: str
     name: str
     description: Optional[str] = None
     category: str
@@ -33,7 +37,7 @@ class MenuItemIn(BaseModel):
 
 class MenuItemOut(BaseModel):
     id: int
-    canteen_id: Optional[int] = None
+    canteen_id: Optional[str] = None
     name: str
     description: Optional[str] = None
     category: str
