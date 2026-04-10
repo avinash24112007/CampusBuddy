@@ -73,8 +73,8 @@ def login(response: Response, request: pyd_login,  db: Session = Depends(make_db
             db.commit()
 
             # Initializing cookie access token and refresh token object 
-            response.set_cookie(key='access_token', value=access_token, httponly=True, secure=False, samesite='lax')
-            response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=False, samesite='lax')
+            response.set_cookie(key='access_token', value=access_token, httponly=True, secure=True, samesite='none')
+            response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=True, samesite='none')
             return {
                     "status": "success",
                     "message": "Login successful!",
@@ -119,8 +119,8 @@ def login(response: Response, request: pyd_login,  db: Session = Depends(make_db
                 db.commit()
 
                 # Initializing cookie access token and refresh token object
-                response.set_cookie(key='access_token', value=access_token, httponly=True, secure=False, samesite='lax')
-                response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=False, samesite='lax')
+                response.set_cookie(key='access_token', value=access_token, httponly=True, secure=True, samesite='none')
+                response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=True, samesite='none')
                 
                 return  {"status": "success", 
                          "message": "Login successful!", 
@@ -196,7 +196,7 @@ def refresh(response: Response, request: Request, db: Session = Depends(make_db_
                 }
     new_access_token = create_access_token(data)
 
-    response.set_cookie(key='access_token', value=new_access_token, httponly=True, secure=True, samesite='lax')
+    response.set_cookie(key='access_token', value=new_access_token, httponly=True, secure=True, samesite='none')
 
     return {'status': 'success', 'message': 'Token refreshed'}
 

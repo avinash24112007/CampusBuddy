@@ -34,7 +34,7 @@ def auto_refresh_token(request: Request, response: Response, db: Session, payloa
                 'role': role
             }
             new_access = create_access_token(new_data)
-            response.set_cookie(key='access_token', value=new_access, httponly=True, secure=False, samesite='lax')
+            response.set_cookie(key='access_token', value=new_access, httponly=True, secure=True, samesite='none')
 
 
 def get_current_admin(request: Request, response: Response, db: Session = Depends(make_db_session)):
