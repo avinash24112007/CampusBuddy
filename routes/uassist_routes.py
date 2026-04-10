@@ -8,88 +8,82 @@ from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import HumanMessage
 import os
 
+from tools.arena import make_arena_tools
+from tools.shopperz import make_shopperz_tools
+
 router = APIRouter(prefix="/uassist", tags=["UAssist"])
 
 class ChatRequest(BaseModel):
     message: str
     session_id: str
+    user_id: str | None = None
 
 class ChatResponse(BaseModel):
-    reply: str
-    session_id: str
+    message: str
+    type: str = "text" # "text", "food_cards", "event_cards", "stationery_cards"
+    data: list = []
 
-SYSTEM_PROMPT = """You are UAssist, the AI assistant inside the CampusBuddy student super-app.
-Your primary role right now is helping students discover food available in campus canteens.
-When a student asks you a question, use your tools to query the database.
-Be concise, friendly, and helpful. Format your responses nicely in Markdown.
+SYSTEM_PROMPT = """You are UAssist, the student super-app AI at KU.
+You help students with Food (Caffenity), Events (Arena), and Shopping (Shopperz).
+
+STRICT OUTPUT FORMAT:
+If you are recommending items (food, events, or products), you MUST format your final response as a JSON object:
+{
+  "message": "Your friendly text reply here...",
+  "type": "food_cards" | "event_cards" | "stationery_cards" | "text",
+  "data": [ ... list of relevant database objects found by tools ...]
+}
+
+- Use 'food_cards' for canteen items.
+- Use 'event_cards' for arena events.
+- Use 'stationery_cards' for store products or market listings.
+- If no items are being shown, use type 'text' and an empty data list.
+
+Be concise and friendly.
 """
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_session)):
-    # 1. Initialize large language model (requires GROQ_API_KEY in env)
-    if os.environ.get('GROQ_API_KEY') is not None:
-        api = os.environ.get('GROQ_API_KEY')
-    else: 
-        print("No API Key Provided")
+    api_key = os.environ.get('GROQ_API_KEY')
+    if not api_key:
+        return ChatResponse(message="AI Service Unavailable (Missing Key)", type="text")
     
-    llm = ChatGroq(
-        api_key=api,
-        model="llama3-8b-8192", 
-        temperature=0.0
-    )
+    llm = ChatGroq(api_key=api_key, model="llama3-8b-8192", temperature=0.1)
 
-    # 2. Create tools using the dynamically injected session
-    tools = [make_caffenity_tool(db)]
+    # 2. Combine all tools for a unified experience
+    tools = []
+    tools.append(make_caffenity_tool(db))
+    tools.extend(make_arena_tools(db))
+    tools.extend(make_shopperz_tools(db))
 
-    # 3. Create the agent using langgraph
-    agent_executor = create_react_agent(llm, tools=tools, state_modifier=SYSTEM_PROMPT)
+    # 3. Dynamic context (User ID)
+    dynamic_prompt = SYSTEM_PROMPT + f"\n\nCONTEXT: Logged-in Student ID: {request.user_id or 'unknown'}"
 
-    # 4. Invoke the executor
-    try:
-        response = agent_executor.invoke({"messages": [HumanMessage(content=request.message)]})
-        reply = response["messages"][-1].content
-    except Exception as e:
-        reply = f"Error processing request: {str(e)}"
-
-    return ChatResponse(reply=reply, session_id=request.session_id)
-
-
-from schemas.uassist_schemas import ArenaChatRequest
-from tools.arena import make_arena_tools
-
-ARENA_SYSTEM_PROMPT = """You are UAssist, the AI assistant inside the CampusBuddy student super-app.
-You help students discover events, check their registrations, find teammates, and get event details from the Arena module.
-Be friendly, concise, and campus-aware.
-IMPORTANT Rules:
-- If an event is full (0 spots left or filled capacity >= total capacity), proactively mention it.
-- If the deadline has passed, explicitly mention that registration is closed.
-Format your responses nicely in Markdown.
-"""
-
-@router.post("/arena", response_model=ChatResponse)
-async def arena_chat_with_uassist(request: ArenaChatRequest, db: Session = Depends(make_db_session)):
-    if os.environ.get('GROQ_API_KEY') is not None:
-        api = os.environ.get('GROQ_API_KEY')
-    else: 
-        print("No API Key Provided")
-    
-    llm = ChatGroq(
-        api_key=api,
-        model="llama3-8b-8192", 
-        temperature=0.0
-    )
-
-    tools = make_arena_tools(db)
-    
-    # Inject user_id directly into the system prompt context so the LLM doesn't have to guess or ask
-    dynamic_prompt = ARENA_SYSTEM_PROMPT + f"\n\nCURRENT LOGGED-IN STUDENT ID: {request.user_id}\nAutomatically use this user_id whenever a tool requires it (e.g. check_my_registrations or find_teammates). Do NOT ask the student for their ID."
-    
+    # 4. Create the agent
     agent_executor = create_react_agent(llm, tools=tools, state_modifier=dynamic_prompt)
 
     try:
         response = agent_executor.invoke({"messages": [HumanMessage(content=request.message)]})
-        reply = response["messages"][-1].content
+        raw_reply = response["messages"][-1].content
+        
+        # Try to parse JSON from the LLM response
+        import json
+        import re
+        
+        # Look for JSON structure in the reply
+        json_match = re.search(r'\{.*\}', raw_reply, re.DOTALL)
+        if json_match:
+            try:
+                data = json.loads(json_match.group())
+                return ChatResponse(
+                    message=data.get("message", ""),
+                    type=data.get("type", "text"),
+                    data=data.get("data", [])
+                )
+            except:
+                pass
+        
+        return ChatResponse(message=raw_reply, type="text")
+        
     except Exception as e:
-        reply = f"Error processing request: {str(e)}"
-
-    return ChatResponse(reply=reply, session_id=request.session_id)
+        return ChatResponse(message=f"Error: {str(e)}", type="text")
