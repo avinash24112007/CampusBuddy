@@ -14,7 +14,7 @@ class User(Base):
     id: Mapped[str] = mapped_column(
         String(50), 
         primary_key=True, 
-        
+        default=lambda: str(uuid.uuid4())
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)

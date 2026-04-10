@@ -1,9 +1,8 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
-from uuid import UUID
 
 class UserContextOut(BaseModel):
-    id: UUID
+    id: str
     name: str
     email: str
     avatar: Optional[str] = Field(validation_alias="avatar_url", default=None)

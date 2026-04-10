@@ -1,6 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
-from uuid import UUID
 
 class RetailIn(BaseModel):
     name: str
@@ -14,7 +13,7 @@ class RetailIn(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 class RetailOut(BaseModel):
-    id: UUID
+    id: int
     name: str
     category: str
     price: float
@@ -32,7 +31,7 @@ class RetailResponse(BaseModel):
     data: List[RetailOut]
 
 class SellerOut(BaseModel):
-    id: UUID
+    id: str
     name: str
     avatar: Optional[str] = Field(validation_alias="avatar_url", default=None)
     trustScore: int = Field(validation_alias="trust_score", default=100)
@@ -49,7 +48,7 @@ class MarketIn(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 class MarketOut(BaseModel):
-    id: UUID
+    id: int
     title: str
     condition: str
     seller: SellerOut

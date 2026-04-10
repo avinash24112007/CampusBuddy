@@ -1,14 +1,13 @@
-import uuid
 from datetime import datetime
-from sqlalchemy import String, Text, Boolean, Integer, Numeric, DateTime, ForeignKey, text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import String, Text, Boolean, Integer, Numeric, DateTime, ForeignKey
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
 class RetailInventory(Base):
     __tablename__ = 'retail_inventory'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     category: Mapped[str] = mapped_column(String(50), nullable=False)
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
@@ -24,8 +23,8 @@ class RetailInventory(Base):
 class MarketListing(Base):
     __tablename__ = 'market_listings'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    seller_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    seller_id: Mapped[str] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     seller = relationship("User")
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
@@ -38,8 +37,8 @@ class MarketListing(Base):
 class PrintQueue(Base):
     __tablename__ = 'print_queue'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     file_metadata: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default='{}')
     cost_total: Mapped[float] = mapped_column(Numeric(8, 2), default=0.0)
     status: Mapped[str] = mapped_column(String(20), default='Queued')  # 'Queued', 'In_Process', 'Ready'

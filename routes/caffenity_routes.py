@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.orm import Session
 from typing import Optional
-from uuid import UUID
 
 from utils.session_maker import make_db_session
 from models.caffenity_models import Canteen, MenuItem
@@ -17,7 +16,7 @@ def get_canteens(db: Session = Depends(make_db_session)):
 
 @router.get("/menu", response_model=MenuResponse, dependencies=[Depends(get_current_user)])
 def get_menu(
-    canteen_id: Optional[UUID] = Query(None, description="Filter menu by specific canteen UUID"),
+    canteen_id: Optional[int] = Query(None, description="Filter menu by specific canteen ID"),
     db: Session = Depends(make_db_session)
 ):
     query = db.query(MenuItem)

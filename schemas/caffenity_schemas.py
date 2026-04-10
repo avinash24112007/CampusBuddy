@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from uuid import UUID
 
 class CanteenIn(BaseModel):
     name: str
@@ -9,7 +8,7 @@ class CanteenIn(BaseModel):
     is_active: bool = True
 
 class CanteenOut(BaseModel):
-    id: UUID
+    id: int
     name: str
     location: str
     description: Optional[str] = None
@@ -19,7 +18,7 @@ class CanteenOut(BaseModel):
         from_attributes = True
 
 class MenuItemIn(BaseModel):
-    canteen_id: UUID
+    canteen_id: int
     name: str
     description: Optional[str] = None
     category: str
@@ -33,8 +32,8 @@ class MenuItemIn(BaseModel):
     tags: List[str] = Field(default_factory=list)
 
 class MenuItemOut(BaseModel):
-    id: UUID
-    canteen_id: Optional[UUID] = None
+    id: int
+    canteen_id: Optional[int] = None
     name: str
     description: Optional[str] = None
     category: str

@@ -21,7 +21,15 @@ def get_market_listings(db: Session = Depends(make_db_session)):
 
 @router.post("/retail", response_model=RetailOut, dependencies=[Depends(get_current_admin)])
 def create_retail_item(payload: RetailIn, db: Session = Depends(make_db_session)):
-    new_retail = RetailInventory(**payload.model_dump(by_alias=False))
+    new_retail = RetailInventory(
+        name=payload.name,
+        category=payload.category,
+        price=payload.price,
+        image_url=payload.image,
+        stock_level=payload.stock,
+        is_duo_sync=payload.isDuoSync,
+        duo_price=payload.duoPrice
+    )
     db.add(new_retail)
     db.commit()
     db.refresh(new_retail)
@@ -29,7 +37,14 @@ def create_retail_item(payload: RetailIn, db: Session = Depends(make_db_session)
 
 @router.post("/market", response_model=MarketOut)
 def create_market_listing(payload: MarketIn, db: Session = Depends(make_db_session), current_user = Depends(get_current_user)):
-    new_market = MarketListing(seller_id=current_user.id, **payload.model_dump(by_alias=False))
+    new_market = MarketListing(
+        seller_id=current_user.id,
+        title=payload.title,
+        condition=payload.condition,
+        price=payload.price,
+        original_price=payload.originalPrice,
+        image_url=payload.image
+    )
     db.add(new_market)
     db.commit()
     db.refresh(new_market)

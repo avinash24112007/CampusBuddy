@@ -1,6 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
-from uuid import UUID
 from datetime import datetime
 
 # --- POST Input ---
@@ -33,7 +32,7 @@ class CapacityOut(BaseModel):
     filled: int
 
 class ArenaEventOut(BaseModel):
-    id: UUID
+    id: str
     title: str
     organizer: str
     coverImage: Optional[str] = None

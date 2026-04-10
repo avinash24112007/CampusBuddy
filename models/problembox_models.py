@@ -1,9 +1,8 @@
-import uuid
 import random
 from datetime import datetime
 import enum
 from sqlalchemy import String, Text, Boolean, Integer, DateTime, ForeignKey, text, Enum
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
@@ -34,7 +33,7 @@ class Ticket(Base):
     priority: Mapped[TicketPriority] = mapped_column(Enum(TicketPriority), default=TicketPriority.Medium)
     status: Mapped[TicketStatus] = mapped_column(Enum(TicketStatus), default=TicketStatus.Raised)
     
-    reporter_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    reporter_id: Mapped[str] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     reporter = relationship("User", foreign_keys=[reporter_id])
     is_anonymous: Mapped[bool] = mapped_column(Boolean, default=False)
     
@@ -49,7 +48,7 @@ class Ticket(Base):
 class TicketTimeline(Base):
     __tablename__ = 'ticket_timeline'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     ticket_id: Mapped[str] = mapped_column(ForeignKey('tickets.id', ondelete='CASCADE'), nullable=False)
     step_name: Mapped[str] = mapped_column(String(100), nullable=False)
     update_text: Mapped[str] = mapped_column(Text, nullable=True)
@@ -59,8 +58,8 @@ class TicketTimeline(Base):
 class Suggestion(Base):
     __tablename__ = 'suggestions'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     upvotes: Mapped[int] = mapped_column(Integer, default=0)
-    author_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    author_id: Mapped[str] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text('now()'))

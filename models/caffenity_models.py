@@ -1,15 +1,16 @@
-import uuid
+import random
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Text, Time, Integer, Float, Boolean, ForeignKey, Numeric, DateTime, text
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import ARRAY
 from database import Base
 from datetime import time, datetime, timezone
 from typing import Optional
 
+
 class Canteen(Base):
     __tablename__ = 'canteens'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     location: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
@@ -19,8 +20,8 @@ class Canteen(Base):
 class MenuItem(Base):
     __tablename__ = 'menu_items'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    canteen_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey('canteens.id'))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    canteen_id: Mapped[Optional[int]] = mapped_column(ForeignKey('canteens.id'))
     canteen = relationship("Canteen", backref="menu_items")
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
@@ -38,12 +39,16 @@ class MenuItem(Base):
     tags: Mapped[Optional[list[str]]] = mapped_column(ARRAY(Text))
 
 
+def generate_order_number():
+    return f"ORD-{random.randint(10000, 99999)}"
+
+
 class Order(Base):
     __tablename__ = 'orders'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    order_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
-    canteen_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey('canteens.id'))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    order_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, default=generate_order_number)
+    canteen_id: Mapped[Optional[int]] = mapped_column(ForeignKey('canteens.id'))
     student_name: Mapped[str] = mapped_column(String(255), nullable=False)
     total_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     status: Mapped[Optional[str]] = mapped_column(String(50), default='Placed')
@@ -57,9 +62,9 @@ class Order(Base):
 class OrderItem(Base):
     __tablename__ = 'order_items'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    order_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey('orders.id', ondelete='CASCADE'))
-    menu_item_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey('menu_items.id'))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    order_id: Mapped[Optional[int]] = mapped_column(ForeignKey('orders.id', ondelete='CASCADE'))
+    menu_item_id: Mapped[Optional[int]] = mapped_column(ForeignKey('menu_items.id'))
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     price_at_time_of_order: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     customizations: Mapped[Optional[str]] = mapped_column(Text)

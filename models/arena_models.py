@@ -1,14 +1,14 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import String, Text, Boolean, Integer, Numeric, DateTime, ForeignKey, text
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
 class ArenaEvent(Base):
     __tablename__ = 'arena_events'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    id: Mapped[str] = mapped_column(String(50), primary_key=True, default=lambda: str(uuid.uuid4()))
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     organizer: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
@@ -31,9 +31,9 @@ class ArenaEvent(Base):
 class ArenaRegistration(Base):
     __tablename__ = 'arena_registrations'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    event_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('arena_events.id', ondelete='CASCADE'), nullable=False)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[str] = mapped_column(ForeignKey('arena_events.id', ondelete='CASCADE'), nullable=False)
+    user_id: Mapped[str] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     team_name: Mapped[str] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(50), default='Registered')
     registered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text('now()'))
@@ -42,10 +42,10 @@ class ArenaRegistration(Base):
 class ArenaTeamSync(Base):
     __tablename__ = 'arena_team_sync'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
-    event_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('arena_events.id', ondelete='CASCADE'), nullable=False)
-    requester_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    recipient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[str] = mapped_column(ForeignKey('arena_events.id', ondelete='CASCADE'), nullable=False)
+    requester_id: Mapped[str] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    recipient_id: Mapped[str] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     tier: Mapped[str] = mapped_column(String(50), nullable=False)
     status: Mapped[str] = mapped_column(String(50), default='Pending')
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text('now()'))
