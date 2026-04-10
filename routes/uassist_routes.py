@@ -52,7 +52,7 @@ async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_
     if not api_key:
         return ChatResponse(message="AI Service Unavailable (Missing Key)", type="text")
     
-    llm = ChatGroq(api_key=api_key, model="llama3-8b-8192", temperature=0.1)
+    llm = ChatGroq(api_key=api_key, model="llama-3.3-70b-versatile", temperature=0.1)
 
     # 2. Combine all tools for a unified experience
     tools = []
