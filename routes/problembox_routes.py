@@ -82,4 +82,7 @@ def create_ticket(payload: TicketIn, db: Session = Depends(make_db_session), cur
         joinedload(Ticket.timeline)
     ).filter_by(id=new_ticket.id).first()
     
-    return TicketOut(**serialize_ticket(hydrated))
+    if hydrated is not None:
+        return TicketOut(**serialize_ticket(hydrated))
+    
+

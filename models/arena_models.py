@@ -8,7 +8,7 @@ from database import Base
 class ArenaEvent(Base):
     __tablename__ = 'arena_events'
 
-    id: Mapped[str] = mapped_column(String(50), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String(50), primary_key=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     organizer: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)

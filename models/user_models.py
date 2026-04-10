@@ -16,7 +16,7 @@ class User(Base):
         primary_key=True, 
         default=lambda: str(uuid.uuid4())
     )
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    name: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     account_type: Mapped[str] = mapped_column(String(50), default='Basic')
