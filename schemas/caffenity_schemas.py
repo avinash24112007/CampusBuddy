@@ -99,3 +99,20 @@ class OrderOut(BaseModel):
 class OrderResponse(BaseModel):
     success: bool = True
     data: List[OrderOut]
+
+
+class OrderItemIn(BaseModel):
+    id: str = Field(alias="id")
+    quantity: int
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class OrderIn(BaseModel):
+    items: List[OrderItemIn]
+    canteenId: str = Field(alias="canteenId")
+    scheduledTime: Optional[str] = Field(alias="scheduledTime", default="As soon as possible")
+    paymentMethod: str = Field(alias="paymentMethod", default="UPI")
+    specialNote: Optional[str] = Field(alias="specialNote", default=None)
+
+    model_config = ConfigDict(populate_by_name=True)
