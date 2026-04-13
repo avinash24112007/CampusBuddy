@@ -11,3 +11,6 @@ wheels/
 
 # Environment variables
 .ENV
+models/__pycache__/arena_models.cpython-311.pyc
+.gitignore
+models/__pycache__/caffenity_models.cpython-311.pyc

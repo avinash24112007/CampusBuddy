@@ -7,7 +7,7 @@ from langchain_groq import ChatGroq
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import HumanMessage
 import os
-
+from langchain.agents import create_agent
 from tools.arena import make_arena_tools
 from tools.shopperz import make_shopperz_tools
 from tools.problembox import make_problembox_tools
@@ -67,7 +67,7 @@ async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_
 
     # 4. Create the agent with resilient parameter passing
     import inspect
-    sig = inspect.signature(create_react_agent)
+    sig = inspect.signature(create_agent)
     agent_kwargs = {}
     if 'state_modifier' in sig.parameters:
         agent_kwargs['state_modifier'] = dynamic_prompt
@@ -76,7 +76,7 @@ async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_
     elif 'system_message' in sig.parameters:
         agent_kwargs['system_message'] = dynamic_prompt
 
-    agent_executor = create_react_agent(llm, tools=tools, **agent_kwargs)
+    agent_executor = create_agent(llm, tools=tools, **agent_kwargs)
 
     try:
         response = agent_executor.invoke({"messages": [HumanMessage(content=request.message)]})
