@@ -10,11 +10,14 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 import os
 import inspect
+from langchain.tools import tool
+from langchain.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langchain.agents import create_agent
 from tools.arena import make_arena_tools
 from tools.shopperz import make_shopperz_tools
 from tools.problembox import make_problembox_tools
 from tools.map import make_map_tools
+from utils.llm_utils import create_agent_fn
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +76,34 @@ def normalize_content(content) -> str:
         return str(item)
     return str(content) if content is not None else ""
 
+def domain_tools(request: ChatRequest, db: Session):
+    caffenity_tool_agent = create_agent_fn(make_caffenity_tool())
+    arena_tool_agent = create_agent_fn(make_arena_tools(db))
+    shopperz_tool_agent = create_agent_fn(make_shopperz_tools(db))
+    problembox_tool_agent = create_agent_fn(make_problembox_tools(db, request.user_id or "unknown"))
+    map_tool_agent = create_agent_fn(make_map_tools(db))
+    # Combine all tools for a unified experience
+    
+    
+    @tool
+    def _call_caffenity_tool(query: str):
+        """
+        Call this tool when the user asks querries related to caffetaria/caffenity 
+
+        Args:
+            query: Give the tool proper attributes like the food item, user preferences , price, etc from the user query in string format.
+        """
+        res = caffenity_tool_agent.invoke({
+            "messages":[
+                SystemMessage(content="You are being called by a supervisor agent on behalf of a student. Treat the following as the student's intent, already extracted."),
+                HumanMessage(content=query)
+            ]
+        })
+
+        return res["messages"][-1].content
+    
+    return _call_caffenity_tool
+
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_session)):
@@ -80,15 +111,12 @@ async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_
     if not api_key:
         return ChatResponse(message="AI Service Unavailable (Missing Key)", type="text")
 
-    llm = ChatGoogleGenerativeAI(api_key=api_key, model="gemini-3.1-flash-lite", temperature=0.1)
+    llm = ChatGoogleGenerativeAI(api_key=api_key, model="gemini-3.1-flash-lite", temperature=0.1, max_retries=3,)
 
-    # Combine all tools for a unified experience
-    tools = []
-    tools.append(make_caffenity_tool(db))
-    tools.extend(make_arena_tools(db))
-    tools.extend(make_shopperz_tools(db))
-    tools.extend(make_problembox_tools(db, request.user_id or "unknown"))
-    tools.extend(make_map_tools(db))
+    
+
+    tools = [domain_tools(request, db)]
+    
 
     # Dynamic context (User ID)
     dynamic_prompt = SYSTEM_PROMPT + f"\n\nCONTEXT: Logged-in Student ID: {request.user_id or 'unknown'}"
@@ -113,11 +141,21 @@ async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_
     agent_executor = create_agent(llm, tools=tools, **agent_kwargs)
 
     try:
-        response = agent_executor.invoke({"messages": [HumanMessage(content=request.message)]})
+        response = None
+        for chunk in agent_executor.stream(
+            {"messages": [HumanMessage(content=request.message)]},
+            stream_mode="values"   # <-- "values" gives you the FULL accumulated state each step, not a diff
+        ):
+            response = chunk  # keep overwriting -- last chunk = final complete state
 
-        # If response_format was supported, the structured object is typically
-        # available under a dedicated key (commonly "structured_response").
-        # Confirmed via: print(response.keys()) against your langchain version.
+        # Log what happened, from the final accumulated message list
+        for msg in response["messages"]:
+            if isinstance(msg, AIMessage) and msg.tool_calls:
+                for call in msg.tool_calls:
+                    print(f"[TOOL CALL] {call['name']}  args={call['args']}")
+            elif isinstance(msg, ToolMessage):
+                print(f"[TOOL RESULT] {msg.name}: {msg.content}")
+
         structured = response.get("structured_response")
         if structured is not None:
             if isinstance(structured, UAssistReply):
@@ -125,8 +163,6 @@ async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_
             if isinstance(structured, dict):
                 return ChatResponse(**structured)
 
-        # Fallback: response_format wasn't applied (older langchain version, or
-        # the key differs) -- degrade gracefully to plain text instead of crashing.
         raw_reply = normalize_content(response["messages"][-1].content)
         return ChatResponse(message=raw_reply, type="text")
 
