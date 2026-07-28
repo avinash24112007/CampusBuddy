@@ -7,7 +7,7 @@ from schemas.uassist_schemas import (
     FindTeammatesInput, EventDetailsInput
 )
 from models.arena_models import ArenaEvent, ArenaRegistration, ArenaTeamSync
-
+from utils.session_maker import get_db_session
 def search_arena_events(
     db: Session,
     keyword: str | None = None,
@@ -196,23 +196,28 @@ def get_event_details(
     return "\n".join(lines)
 
 
-def make_arena_tools(db: Session) -> list:
+def make_arena_tools() -> list:
+
     
     def _search_events(
         keyword: str | None = None, mode: str | None = None, status: str | None = None, 
         is_paid: bool | None = None, max_fee: float | None = None, 
         only_available: bool = True, tags: list[str] | None = None
     ):
-        return search_arena_events(db, keyword, mode, status, is_paid, max_fee, only_available, tags)
+        with get_db_session() as db:
+            return search_arena_events(db, keyword, mode, status, is_paid, max_fee, only_available, tags)
 
     def _my_registrations(user_id: str, status: str | None = None):
-        return check_my_registrations(db, user_id, status)
+        with get_db_session() as db:
+            return check_my_registrations(db, user_id, status)
 
     def _teammates(event_id: str, tier: str | None = None, status: str | None = "Pending"):
-        return find_teammates(db, event_id, tier, status)
+        with get_db_session() as db:
+            return find_teammates(db, event_id, tier, status)
 
     def _event_details(event_id: str | None = None, title_keyword: str | None = None):
-        return get_event_details(db, event_id, title_keyword)
+        with get_db_session() as db:
+            return get_event_details(db, event_id, title_keyword)
 
     return [
         StructuredTool.from_function(
@@ -240,3 +245,5 @@ def make_arena_tools(db: Session) -> list:
             args_schema=EventDetailsInput
         )
     ]
+
+

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
 class FoodSearchInput(BaseModel):
@@ -14,9 +14,12 @@ class ArenaEventSearchInput(BaseModel):
     status: Optional[str] = Field(None, description="Event status filter. Values usually 'Upcoming', 'Ongoing', or 'Completed'.")
     is_paid: Optional[bool] = Field(None, description="True for paid events, False for strictly free events, None for either.")
     max_fee: Optional[float] = Field(None, description="Maximum registration fee the student is willing to pay.")
-    only_available: bool = Field(True, description="Default True. Filters out events where filled capacity has reached total capacity.")
+    only_available: bool | str = Field(True, description="Default True. Filters out events where filled capacity has reached total capacity.")
     tags: Optional[list[str]] = Field(None, description="List of category tags to filter by. Example: ['coding', 'music'].")
-
+    @field_validator("only_available", mode="before")
+    @classmethod
+    def coerce_bool(cls, v):
+        return v.strip().lower() == "true" if isinstance(v, str) else v
 class MyRegistrationsInput(BaseModel):
     user_id: str = Field(..., description="The UUID of the logged-in student initiating the request.")
     status: Optional[str] = Field(None, description="Filter by status, valid options usually 'Registered', 'Cancelled', or 'Attended'.")
