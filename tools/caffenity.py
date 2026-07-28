@@ -3,7 +3,7 @@ from sqlalchemy import or_
 from models.caffenity_models import MenuItem, Canteen
 from langchain_core.tools import StructuredTool
 from schemas.uassist_schemas import FoodSearchInput
-
+from utils.session_maker import get_db_session
 def search_food_items(
     db: Session,
     keyword:        str | None = None,
@@ -72,7 +72,7 @@ def search_food_items(
     return "\n".join(lines)
 
 
-def make_caffenity_tool(db: Session):
+def make_caffenity_tool():
     def _search(
         keyword:        str | None = None,
         category:       str | None = None,
@@ -81,12 +81,13 @@ def make_caffenity_tool(db: Session):
         min_price:      int | None = None,
         only_available: bool = True
     ) -> str:
-        return search_food_items(
-            db, keyword, category, 
-            canteen, max_price, min_price, only_available
-        )
+        with get_db_session() as db:
+            return search_food_items(
+                db, keyword, category, 
+                canteen, max_price, min_price, only_available
+            )
 
-    return StructuredTool.from_function(
+    return [StructuredTool.from_function(
         func=_search,
         name="search_food_items",
         description='''
@@ -100,4 +101,4 @@ def make_caffenity_tool(db: Session):
             - Combos, salads, snacks, beverages etc.
         ''',
         args_schema=FoodSearchInput,
-    )
+    )]
