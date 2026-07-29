@@ -3,7 +3,7 @@ from sqlalchemy import or_
 from langchain_core.tools import StructuredTool
 from models.map_models import Building, Room
 from pydantic import BaseModel, Field
-
+from utils.session_maker import get_db_session
 class MapSearchInput(BaseModel):
     query: str = Field(description="The name of the building or room to find (e.g. 'Main Building', 'L-201')")
 
@@ -13,7 +13,7 @@ def search_campus_locations(db: Session, query: str) -> str:
     buildings = db.query(Building).filter(
         or_(
             Building.name.ilike(f"%{query}%"),
-            Building.description.ilike(f"%{query}%")
+            Building.facilities.ilike(f"%{query}%")
         )
     ).limit(3).all()
     
@@ -30,16 +30,17 @@ def search_campus_locations(db: Session, query: str) -> str:
         
     lines = [f"I found some matches on the map for '{query}':\n"]
     for b in buildings:
-        lines.append(f"🏢 Building: {b.name}\n   Location: {b.lat}, {b.lng}\n   About: {b.description or 'No data'}")
+        lines.append(f"🏢 Building: {b.name}\n   Location: {b.x}, {b.z}\n   About: {b.facilities or 'No data'}")
         
     for r in rooms:
         lines.append(f"🚪 Room: {r.name}\n   Building ID: {r.building_id}")
         
     return "\n".join(lines)
 
-def make_map_tools(db: Session) -> list:
+def make_map_tools() -> list:
     def _search(query: str):
-        return search_campus_locations(db, query)
+        with get_db_session() as db:
+            return search_campus_locations(db, query)
         
     return [
         StructuredTool.from_function(
