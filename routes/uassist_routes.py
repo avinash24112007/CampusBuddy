@@ -79,8 +79,8 @@ def normalize_content(content) -> str:
 def domain_tools(request: ChatRequest, db: Session):
     caffenity_tool_agent = create_agent_fn(make_caffenity_tool())
     arena_tool_agent = create_agent_fn(make_arena_tools())
-    shopperz_tool_agent = create_agent_fn(make_shopperz_tools(db))
-    problembox_tool_agent = create_agent_fn(make_problembox_tools(db, request.user_id or "unknown"))
+    shopperz_tool_agent = create_agent_fn(make_shopperz_tools())
+    problembox_tool_agent = create_agent_fn(make_problembox_tools(request.user_id or "unknown"))
     map_tool_agent = create_agent_fn(make_map_tools())
     # Combine all tools for a unified experience
     
@@ -139,7 +139,7 @@ def domain_tools(request: ChatRequest, db: Session):
         print("\n\n Tool Call")
         print("_call_map_tool query_input: ", query)
         print("\n\n ")
-        res = arena_tool_agent.invoke({
+        res = map_tool_agent.invoke({
             "messages":[
                 SystemMessage(content="You are being called by a supervisor agent on behalf of a student. Treat the following as the student's intent, already extracted."),
                 HumanMessage(content=query)
@@ -148,7 +148,28 @@ def domain_tools(request: ChatRequest, db: Session):
 
         return res["messages"][-1].content
     
-    return _call_caffenity_tool, _call_arena_tool, _call_map_tool
+    @tool
+    def _call_problembox_tool(query: str):
+        """
+        Call this tool when the user asks querries related to navigating the complaints 
+
+        Args:
+            query: Give the tool proper attributes like the problem description, whether to add into or fetch the user's ticket from database , report category,  etc from the user query in string format.
+        """
+
+        print("\n\n Tool Call")
+        print("_call_problembox_tool query_input: ", query)
+        print("\n\n ")
+        res = problembox_tool_agent.invoke({
+            "messages":[
+                SystemMessage(content="You are being called by a supervisor agent on behalf of a student. Treat the following as the student's intent, already extracted."),
+                HumanMessage(content=query)
+            ]
+        })
+
+        return res["messages"][-1].content
+    
+    return _call_caffenity_tool, _call_arena_tool, _call_map_tool, _call_problembox_tool
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -177,14 +198,14 @@ async def chat_with_uassist(request: ChatRequest, db: Session = Depends(make_db_
             {"messages": [HumanMessage(content=request.message)]},
             stream_mode="values"   # <-- "values" gives you the FULL accumulated state each step, not a diff
         ):
-            if response is not None:
-                response = chunk  # keep overwriting -- last chunk = final complete state
-                print("Response: ", response["messages"][-1])
-                # Log what happened, from the final accumulated message list
-                for msg in response["messages"]:
-                    msg.pretty_print()
+            # if response is not None:
+            response = chunk  # keep overwriting -- last chunk = final complete state
+            print("Response: ", response["messages"][-1])
+            # Log what happened, from the final accumulated message list
+            for msg in response["messages"]:
+                msg.pretty_print()
 
-        structured = response.get("structured_response") # pyright: ignore[reportOptionalMemberAccess]
+        structured = response.get("structured_response") # type: ignore
         print("Structured : ", structured)
         if structured is not None:
             if isinstance(structured, UAssistReply):

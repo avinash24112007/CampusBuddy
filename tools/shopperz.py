@@ -3,7 +3,7 @@ from sqlalchemy import or_
 from langchain_core.tools import StructuredTool
 from models.shopperz_models import RetailInventory, MarketListing
 from pydantic import BaseModel, Field
-
+from utils.session_maker import get_db_session
 class ShopperzSearchInput(BaseModel):
     query: str = Field(description="The search term for products or listings (e.g. 'notebook', 'hoodie')")
 
@@ -42,12 +42,14 @@ def search_shopperz_market(db: Session, query: str) -> str:
         lines.append(f"- {l.title} (Condition: {l.condition}): ₹{l.price}")
     return "\n".join(lines)
 
-def make_shopperz_tools(db: Session) -> list:
-    def _search_retail(query: str):
-        return search_shopperz_retail(db, query)
-        
-    def _search_market(query: str):
-        return search_shopperz_market(db, query)
+def make_shopperz_tools() -> list:
+    with get_db_session() as db:
+        def _search_retail(query: str):
+            return search_shopperz_retail(db, query)
+    with get_db_session() as db:
+
+        def _search_market(query: str):
+            return search_shopperz_market(db, query)
         
     return [
         StructuredTool.from_function(
