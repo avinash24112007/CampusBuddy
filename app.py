@@ -6,8 +6,11 @@ from database import Base, engine
 from models import caffenity_models, credentials_models, arena_models, problembox_models, user_models, shopperz_models, map_models
 from routes import uassist_routes, auth_routes, caffenity_routes, shopperz_routes, problembox_routes, user_routes, arena_routes, map_routes
 
+from CampusBuddy.routes.auth_routes import router as auth_router
 
+app = FastAPI()
 
+app.include_router(auth_router)
 
 
 @asynccontextmanager

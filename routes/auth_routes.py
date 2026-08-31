@@ -1,6 +1,4 @@
-from fastapi import APIRouter, Depends, Response, Request
-
-from sqlalchemy.orm import Session
+from fastapi import FastAPI, APIRouter, Depends, Response, Request
 
 from utils.session_maker import make_db_session
 from utils.security import verify_password, hash_password
@@ -14,33 +12,204 @@ from schemas.auth_s import pyd_login, pyd_register
 
 from datetime import datetime, timezone, timedelta
 
+# 1. You MUST define 'app' here so Uvicorn can find it
+app = FastAPI(title="CampusBuddy API")
+
+router = APIRouter(prefix="/auth", tags=["Auth"])
+
+@app.get("/")
+def read_root():
+    return {"status": "API is running"}
+
 REFRESH_EXPIRE_DAYS = 7
 router = APIRouter()
+import base64
+import hashlib
+import os
+import secrets
+from email.mime.text import MIMEText
+
+import redis
+from fastapi import HTTPException, status
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from pydantic import BaseModel, EmailStr
+from sqlalchemy.orm import Session
+
+router = APIRouter(prefix="/auth", tags=["Auth"])
+
+redis_client = redis.Redis(
+    host=os.getenv("REDIS_HOST", "localhost"),
+    port=int(os.getenv("REDIS_PORT", 6379)),
+    db=0,
+    decode_responses=True,
+)
+
+SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
+OTP_EXPIRY_SECONDS = 300  
+MAX_ATTEMPTS = 5
+
+def get_gmail_service():
+    creds = None
+    if os.path.exists("token.json"):
+        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                "credentials.json", SCOPES
+            )
+            creds = flow.run_local_server(port=0)
+
+        with open("token.json", "w") as token:
+            token.write(creds.to_json())
+
+    return build("gmail", "v1", credentials=creds)
 
 
-@router.post('/register')
-def register(request: pyd_register, db: Session = Depends(make_db_session)):
-    # Check if email already exists
-    existing = db.query(User).filter(User.email == request.email).first()
+def generate_otp() -> str:
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def hash_otp(otp: str) -> str:
+    return hashlib.sha256(otp.encode()).hexdigest()
+
+
+def send_otp_email(to_email: str, otp: str):
+    service = get_gmail_service()
+    body = f"Hello,\n\nYour verification code is: {otp}\n\nIt expires in 5 minutes."
+
+    message = MIMEText(body)
+    message["to"] = to_email
+    message["subject"] = "Your Verification Code"
+
+    raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    return (
+        service.users()
+        .messages()
+        .send(userId="me", body={"raw": raw_message})
+        .execute()
+    )
+
+class SendOTPRequest(BaseModel):
+    email: EmailStr
+
+class RegisterRequest(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+    phone: str
+    course: str
+    department: str
+    semester: str
+    college_id: str
+    otp: str  # Added OTP field to complete registration in one step
+
+
+@router.post("/send-otp")
+def send_verify_otp(request: SendOTPRequest, db: Session = Depends(make_db_session)
+):
+    email = str(request.email).lower()
+
+    existing = db.query(User).filter(User.email == email).first()
     if existing:
-        raise HTTPException(status_code=409, detail="Email already registered")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
+
+    otp = generate_otp()
+    otp_hash = hash_otp(otp)
+
+    otp_key = f"otp:{email}"
+    attempts_key = f"otp_attempts:{email}"
+
+    pipeline = redis_client.pipeline()
+    pipeline.set(otp_key, otp_hash, ex=OTP_EXPIRY_SECONDS)
+    pipeline.set(attempts_key, 0, ex=OTP_EXPIRY_SECONDS)
+    pipeline.execute()
+
+    try:
+        send_otp_email(email, otp)
+    except Exception:
+        redis_client.delete(otp_key, attempts_key)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send OTP email",
+        )
+
+    return {"status": "success", "message": "OTP sent successfully"}
+
+
+@router.post("/register")
+def register(
+    request: RegisterRequest, db: Session = Depends(make_db_session)
+):
+    email = str(request.email).lower()
+
+    # 1. Check if user already exists
+    existing = db.query(User).filter(User.email == email).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
+
+    # 2. Verify OTP from Redis
+    otp_key = f"otp:{email}"
+    attempts_key = f"otp_attempts:{email}"
+
+    stored_hash = redis_client.get(otp_key)
+    attempts = redis_client.get(attempts_key)
+
+    if stored_hash is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OTP not found or has expired",
+        )
+
+    attempts_count = int(attempts) if attempts is not None else 0
+    if attempts_count >= MAX_ATTEMPTS:
+        redis_client.delete(otp_key, attempts_key)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many incorrect OTP attempts. Please request a new code.",
+        )
+
+    input_hash = hash_otp(request.otp)
+    if not secrets.compare_digest(input_hash, stored_hash):
+        redis_client.incr(attempts_key)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP"
+        )
+
+    redis_client.delete(otp_key, attempts_key)
 
     hashed_pw = hash_password(request.password)
     new_user = User(
         name=request.name,
-        email=request.email,
+        email=email,
         password=hashed_pw,
         phone=request.phone,
         course=request.course,
         department=request.department,
         semester=request.semester,
-        college_id=request.college_id
+        college_id=request.college_id,
     )
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return {"status": "success", "message": "Registration successful!", "user_id": str(new_user.id)}
 
+    return {
+        "status": "success",
+        "message": "Registration successful!",
+        "user_id": str(new_user.id),
+    }
 
 @router.post('/login')
 def login(response: Response, request: pyd_login,  db: Session = Depends(make_db_session)):
@@ -203,4 +372,3 @@ def refresh(response: Response, request: Request, db: Session = Depends(make_db_
     response.set_cookie(key='access_token', value=new_access_token, httponly=True, secure=True, samesite='none')
 
     return {'status': 'success', 'message': 'Token refreshed'}
-
