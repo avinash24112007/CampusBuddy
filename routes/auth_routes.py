@@ -23,14 +23,13 @@ from email.mime.text import MIMEText
 
 import redis
 from fastapi import HTTPException, status
-from google.auth.transport.requests import Request
+from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
 
 redis_client = redis.Redis(
     host=os.getenv("REDIS_HOST", "localhost"),
@@ -50,7 +49,7 @@ def get_gmail_service():
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            creds.refresh(GoogleRequest())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 "credentials.json", SCOPES
@@ -127,11 +126,11 @@ def send_verify_otp(request: SendOTPRequest, db: Session = Depends(make_db_sessi
 
     try:
         send_otp_email(email, otp)
-    except Exception:
+    except Exception as e:
         redis_client.delete(otp_key, attempts_key)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send OTP email",
+            detail=f"Failed to send OTP email error: {e}",
         )
 
     return {"status": "success", "message": "OTP sent successfully"}
