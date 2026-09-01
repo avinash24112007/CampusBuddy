@@ -12,14 +12,6 @@ from schemas.auth_s import pyd_login, pyd_register
 
 from datetime import datetime, timezone, timedelta
 
-# 1. You MUST define 'app' here so Uvicorn can find it
-app = FastAPI(title="CampusBuddy API")
-
-router = APIRouter(prefix="/auth", tags=["Auth"])
-
-@app.get("/")
-def read_root():
-    return {"status": "API is running"}
 
 REFRESH_EXPIRE_DAYS = 7
 router = APIRouter()
