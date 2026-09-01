@@ -8,8 +8,6 @@ from routes import uassist_routes, auth_routes, caffenity_routes, shopperz_route
 
 
 
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None,None]:
     print("Starting server lifespan")
